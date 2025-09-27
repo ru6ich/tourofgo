@@ -2,32 +2,33 @@ package main
 
 import (
 	"fmt"
-	"sync"
 	"tourofgo/concurrency/practice"
 )
 
 func main() {
-	wg := sync.WaitGroup{}
-	even := make([]int, 0)
-	odd := make([]int, 0)
-	ch := make(chan int, 100)
-	for i := 0; i < 50; i++ {
-		wg.Add(1)
-		go func(n int) {
-			defer wg.Done()
-			go practice.Compute(n, ch)
-		}(i)
+	safeMap := practice.NewSafeMap()
+	alphabet := []string{"alpha", "beta", "gamma", "delta", "epsilon", "zeta", "eta", "tetta", "iota", "kappa"}
+
+	// Write goroutine
+	for w := 0; w < 5; w++ {
+		go func(id int) {
+			safeMap.Set(alphabet[id], id)
+		}(w)
 	}
-	wg.Wait()
-	close(ch)
-	for v := range ch {
-		if v%2 == 0 {
-			even = append(even, v)
-		}
-		if v%2 != 0 {
-			odd = append(odd, v)
-		}
+
+	// Read Goroutine
+	for w := 0; w < 5; w++ {
+		go func(id int) {
+			_, _ = safeMap.Get(alphabet[id])
+		}(w)
 	}
-	fmt.Println(even)
-	fmt.Println(odd)
+
+	for w := 0; w < 2; w++ {
+		go func() {
+			safeMap.Delete(alphabet[w])
+		}()
+	}
+
+	fmt.Println(safeMap.Len())
+	fmt.Println(safeMap.OpsCount())
 }
